@@ -4,6 +4,9 @@ from tkinter import filedialog, messagebox
 
 import pandas as pd
 
+# Testing branches
+
+
 # Optional column mapping to standardize names
 column_mapping = {
     "Salary month": "Salary",
@@ -12,6 +15,7 @@ column_mapping = {
     "Country Name": "Country",
     "Country": "Country",
     "Country_Code": "Country",
+    "Land": "Country",
     # Add more mappings as needed
 }
 
