@@ -1,10 +1,8 @@
 import os
-import pandas as pd
 import tkinter as tk
 from tkinter import filedialog, messagebox
-from openpyxl.styles import numbers
-from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl import load_workbook
+
+import pandas as pd
 
 # Optional column mapping to standardize names
 column_mapping = {
@@ -50,7 +48,6 @@ def process_excel_files(folder_path):
                 return
 
         # Format Hire Date in all sheets
-        workbook = writer.book
         for sheet_name in writer.sheets:
             sheet = writer.sheets[sheet_name]
             header = [cell.value for cell in sheet[1]]
