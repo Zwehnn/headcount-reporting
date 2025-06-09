@@ -1,54 +1,50 @@
-import os
 import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import numbers
 
-# Customize this path to your Excel files
-input_folder = "C:\Users\zeidl\OneDrive\Documents\Coding\Headcount"
-output_file = "merged_countries.xlsx"
+# File paths
+file_germany = r"C:\Users\zeidl\OneDrive\Documents\Coding\Headcount\Headcount Germany.xlsx"
+file_us = r"C:\Users\zeidl\OneDrive\Documents\Coding\Headcount\US headcount.xlsx"
+output_file = r"C:\Users\zeidl\OneDrive\Documents\Coding\Headcount\Merged_Headcount.xlsx"
 
-# Optional: Column standardization mapping (common headers)
-column_mapping = {
-    'Employee ID': 'ID',
-    'Name': 'Name',
-    'Country': 'Country',
-    'Location': 'Office',
-    'Gender': 'Gender',
-    'Department': 'Department',
-    'Job Title': 'Job'
-    # Add more mappings as needed
-}
+# Read Excel files
+df_germany = pd.read_excel(file_germany)
+df_us = pd.read_excel(file_us)
 
-def standardize_columns(df):
-    new_columns = []
-    for col in df.columns:
-        col_clean = col.strip()
-        new_col = column_mapping.get(col_clean, col_clean)
-        new_columns.append(new_col)
-    df.columns = new_columns
-    return df
+# Rename columns for consistency
+df_germany = df_germany.rename(columns={"Salary month": "Salary", "Office": "Location"})
 
+
+# Clean function
 def clean_data(df):
-    df = df.dropna(how='all')  # Drop completely empty rows
-    df = df.dropna(axis=1, how='all')  # Drop completely empty columns
-    df = df.fillna("")  # Optional: Replace NaNs with empty strings
+    df = df.dropna(how="all")
+    df = df.dropna(axis=1, how="all")
+    df = df.fillna("")
     return df
 
-# Collect all Excel files in the folder
-excel_files = [f for f in os.listdir(input_folder) if f.endswith(('.xlsx', '.xls'))]
 
-# Initialize Excel writer
-with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-    for file in excel_files:
-        file_path = os.path.join(input_folder, file)
-        try:
-            df = pd.read_excel(file_path)
-            df = standardize_columns(df)
-            df = clean_data(df)
+# Clean and convert Hire Date
+def prepare_dataframe(df):
+    df = clean_data(df)
+    df["Hire Date"] = pd.to_datetime(df["Hire Date"], errors="coerce")  # Safely convert
+    return df
 
-            # Use filename (without extension) as sheet name
-            sheet_name = os.path.splitext(file)[0][:31]  # Max Excel sheet name length = 31
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-            print(f"Processed: {file}")
-        except Exception as e:
-            print(f"Error processing {file}: {e}")
 
-print(f"\nAll files merged into {output_file}")
+df_germany = prepare_dataframe(df_germany)
+df_us = prepare_dataframe(df_us)
+
+# Write using openpyxl to control date formatting
+with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
+    for sheet_name, df in [("Germany", df_germany), ("US", df_us)]:
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    workbook = writer.book
+    for sheet_name in writer.sheets:
+        sheet = writer.sheets[sheet_name]
+        for cell in sheet[1]:  # header row
+            if cell.value == "Hire Date":
+                col_letter = cell.column_letter
+                for row in sheet.iter_rows(min_row=2, min_col=cell.column, max_col=cell.column):
+                    for c in row:
+                        c.number_format = "DD/MM/YYYY"
